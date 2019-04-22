@@ -1,0 +1,25 @@
+{
+    "name": "s-saranin/elevators",
+    "keywords": [],
+    "description": "",
+    "type": "project",
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "require": {
+        "cboden/ratchet": "^0.4.1",
+        "bunny/bunny": "@dev",
+        "ext-pgsql": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "Elevators\\": "./src/Elevators/"
+        }
+    },
+    "config": {
+        "platform": {
+            "php": "7.3",
+            "ext-bcmath": "1.0",
+            "ext-sockets": "1.0"
+        }
+    }
+}
