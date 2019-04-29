@@ -9,3 +9,5 @@ docker exec -it php php ./bin/simulation-server.php
 ```
 
 Приложение должно завестись на локалхосте.
+
+Интерфейс: http://joxi.ru/82Qb5aOHwdOByA
