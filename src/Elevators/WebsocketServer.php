@@ -17,25 +17,23 @@ class WebsocketServer implements MessageComponentInterface
 {
     protected $counter = 0;
 
-    protected $connection = [
-        'host'      => 'rabbitmq',
-        'user'      => 'root',
-        'password'  => 'root'
-    ];
     protected $clients;
     protected $clientsIdList;
-
 
     protected $channel;
 
     /**
      * Processor constructor.
      * @param LoopInterface $loop
+     * @throws \DI\DependencyException
+     * @throws \DI\NotFoundException
      */
     public function __construct(LoopInterface $loop)
     {
+        $connection = Container::getContainer()->get('connection.rabbitmq');
+
         $this->clients = new SplObjectStorage;
-        $this->channel = (new Client($loop, $this->connection))->connect()->then(function (Client $client) {
+        $this->channel = (new Client($loop, $connection))->connect()->then(function (Client $client) {
             return $client->channel();
         });
 
@@ -61,25 +59,8 @@ class WebsocketServer implements MessageComponentInterface
         });
     }
 
-    protected function prepareMessage($message)
-    {
-        /*$message = pg_escape_string($message);
-
-        if (strlen($message) >= 255) {
-            $message = substr($message, 0, 255);
-        }
-
-        $connection = "host=postgres dbname=elevators user=root password=root";
-        $db = pg_connect($connection);
-        $result = pg_query($db, "INSERT INTO messages (message) VALUES ('{$message}') RETURNING id");
-        $id = pg_fetch_row($result)[0];
-
-        return "Inserted message ({$id}): {$message}";*/
-    }
-
     public function onOpen(ConnectionInterface $connection)
     {
-        // Store the new connection to send messages to later
         $this->clients->attach($connection);
         $this->clientsIdList[$connection->resourceId] = $connection;
 
@@ -99,7 +80,6 @@ class WebsocketServer implements MessageComponentInterface
 
     public function onClose(ConnectionInterface $connection)
     {
-        // The connection is closed, remove it, as we can no longer send it messages
         $this->clients->detach($connection);
         unset($this->clientsIdList[$connection->resourceId]);
 
@@ -132,8 +112,6 @@ class WebsocketServer implements MessageComponentInterface
      */
     function onMessage(ConnectionInterface $connection, $message)
     {
-        echo " [x] Received " . $message . "\n";
-
         $this->channel->then(function (Channel $channel) {
             return $channel->exchangeDeclare('exchange', 'topic')->then(function () use ($channel) {
                 return $channel;

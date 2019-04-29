@@ -6,6 +6,10 @@ namespace Elevators\Simulator;
 
 use SplObjectStorage;
 
+/**
+ * Class ElevatorService
+ * @package Elevators\Simulator
+ */
 class ElevatorService
 {
     /** @var SplObjectStorage */
@@ -16,6 +20,9 @@ class ElevatorService
         $this->elevators = new SplObjectStorage;
     }
 
+    /**
+     * @param Elevator $elevator
+     */
     public function addElevator(Elevator $elevator)
     {
         $this->elevators->attach($elevator);
@@ -29,12 +36,37 @@ class ElevatorService
         return $this->elevators;
     }
 
-    public function getCount() : int
+    /**
+     * @return int
+     */
+    public function getCount(): int
     {
         return $this->elevators->count();
     }
 
-    public function getClosest(int $floor, ElevatorStatus $elevatorStatus = null) : Elevator
+    /**
+     * @param int $id
+     * @return Elevator|object|null
+     */
+    public function getById(int $id)
+    {
+        /** @var Elevator $elevator */
+        foreach ($this->elevators as $elevator) {
+            if ($elevator->getId() === $id) {
+                return $elevator;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Вычисление ближайшего к переданному этажу лифта
+     *
+     * @param int $floor
+     * @param ElevatorStatus|null $elevatorStatus
+     * @return Elevator|null
+     */
+    public function getClosest(int $floor, ElevatorStatus $elevatorStatus = null)
     {
         $status = ($elevatorStatus !== null) ? $elevatorStatus->getValue() : null;
 
@@ -55,6 +87,31 @@ class ElevatorService
         }
 
         return $closest;
+    }
+
+    /**
+     * Создание лифта с присвоением ID
+     *
+     * @param \Elevators\Database\Elevator $databaseElevator
+     * @param int $floor
+     * @param ElevatorStatus|null $elevatorStatus
+     * @param ElevatorMoveDirection|null $direction
+     * @throws \Exception
+     */
+    public function make(
+        \Elevators\Database\Elevator $databaseElevator,
+        int $floor,
+        ElevatorMoveDirection $direction = null,
+        ElevatorStatus $elevatorStatus = null
+    ) {
+        $id = $databaseElevator->add($floor);
+        if (empty($id)) {
+            throw new \Exception('Elevator creating error.');
+        }
+
+        $elevator = new Elevator($id, $floor, $direction, $elevatorStatus);
+
+        $this->addElevator($elevator);
     }
 
 }

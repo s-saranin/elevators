@@ -3,6 +3,7 @@
 namespace Elevators\Simulator;
 
 
+use Elevators\Container;
 use Elevators\Simulator\Render\RenderInterface;
 use React\EventLoop\LoopInterface;
 
@@ -36,8 +37,18 @@ class Simulator
         $this->orderService = $orderService;
     }
 
+    /**
+     * Единица цикла имитации
+     *
+     * @param LoopInterface $loop
+     * @throws \DI\DependencyException
+     * @throws \DI\NotFoundException
+     */
     public function think(LoopInterface $loop)
     {
+        $databaseOrder = Container::getContainer()->get('database.order');
+        $databaseStatistics = Container::getContainer()->get('database.statistics');
+
         $orders = $this->orderService->getOrders();
 
         /**
@@ -63,6 +74,17 @@ class Simulator
                             if (! empty($closestElevator)) {
                                 $order->setElevator($closestElevator);
                                 $order->setStatus(new OrderStatus(OrderStatus::ORDER_PROCESSING));
+                                $order->save($databaseOrder);
+
+                                $databaseStatistics->add([
+                                    'elevator_id' => $closestElevator->getId(),
+                                    'order_id' => $order->getId(),
+                                    'from_floor' => $closestElevator->getFloor(),
+                                    'to_floor' => $order->getFloor(),
+                                    'direction' => $order->getId() >= $closestElevator->getFloor()
+                                        ? ElevatorMoveDirection::MOVE_UP
+                                        : ElevatorMoveDirection::MOVE_DOWN
+                                ]);
                             } else {
                                 continue 2;
                             }
@@ -79,6 +101,7 @@ class Simulator
                         } else {
                             $this->openElevator($loop, $orderElevator);
                             $order->setStatus(new OrderStatus(OrderStatus::ORDER_FINISHED));
+                            $order->save($databaseOrder);
                         }
                         break;
                     case OrderStatus::ORDER_FINISHED:
@@ -89,8 +112,19 @@ class Simulator
         }
     }
 
+    /**
+     * Перемещение лифта
+     *
+     * @param LoopInterface $loop
+     * @param Elevator $elevator
+     * @param ElevatorMoveDirection $direction
+     * @throws \DI\DependencyException
+     * @throws \DI\NotFoundException
+     */
     protected function moveElevator(LoopInterface $loop, Elevator $elevator, ElevatorMoveDirection $direction)
     {
+        $databaseElevator = Container::getContainer()->get('database.elevator');
+
         $maxFloor = $this->floorCount->getCount();
         $minFloor = 1;
 
@@ -113,6 +147,7 @@ class Simulator
                 }
 
                 $elevator->setFloor($nextFloor);
+                $elevator->save($databaseElevator);
 
                 $elevator->setStatus(new ElevatorStatus(ElevatorStatus::ELEVATOR_MOVE));
                 $loop->addTimer(2, function () use ($elevator) {
@@ -125,6 +160,8 @@ class Simulator
     }
 
     /**
+     * Открытие лифта - выгрузка и загрузка пассажирова
+     *
      * @param LoopInterface $loop
      * @param Elevator $elevator
      */

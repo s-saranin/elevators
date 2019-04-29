@@ -13,7 +13,8 @@
         "myclabs/php-enum": "^1.7",
         "ext-spltype": "*",
         "ext-pgsql": "*",
-        "ext-json": "*"
+        "ext-json": "*",
+        "php-di/php-di": "^6.0"
     },
     "autoload": {
         "psr-4": {

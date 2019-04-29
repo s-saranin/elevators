@@ -59,6 +59,11 @@ class Elevator
         $this->floor = $floor;
     }
 
+    public function save(\Elevators\Database\Elevator $databaseElevator)
+    {
+        $databaseElevator->update($this->getId(), $this->getFloor());
+    }
+
     public function __toString()
     {
         $status = ElevatorStatus::search($this->getStatus());

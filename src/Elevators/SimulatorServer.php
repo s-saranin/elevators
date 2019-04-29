@@ -9,7 +9,7 @@ use Bunny\Message;
 use Bunny\Protocol\MethodQueueDeclareOkFrame;
 use Elevators\Simulator\Loader;
 use Elevators\Simulator\Render\RenderInterface;
-use Elevators\Simulator\Order;
+use Elevators\Simulator\StatisticsService;
 use React\EventLoop\LoopInterface;
 use React\Promise\PromiseInterface;
 
@@ -19,18 +19,14 @@ class SimulatorServer
     protected $thinkInterval;
     protected $simulator;
 
-    protected $connection = [
-        'host'      => 'rabbitmq',
-        'user'      => 'root',
-        'password'  => 'root'
-    ];
-
     /** @var Channel|PromiseInterface */
     protected $channel;
 
     /**
      * Processor constructor.
      * @param LoopInterface $loop
+     * @throws \DI\DependencyException
+     * @throws \DI\NotFoundException
      */
     public function __construct(LoopInterface $loop)
     {
@@ -42,6 +38,12 @@ class SimulatorServer
         $this->initRequestHandler();
     }
 
+    /**
+     * @param LoopInterface $loop
+     * @param RenderInterface $render
+     * @throws \DI\DependencyException
+     * @throws \DI\NotFoundException
+     */
     public function think(LoopInterface $loop, RenderInterface $render)
     {
         $this->simulator->think($loop);
@@ -50,6 +52,10 @@ class SimulatorServer
         $this->publish($message->asJson());
     }
 
+    /**
+     * @param string $message
+     * @param array $headers
+     */
     public function publish(string $message, array $headers = [])
     {
         $this->channel->then(function (Channel $channel) use ($message, $headers) {
@@ -57,14 +63,23 @@ class SimulatorServer
         });
     }
 
+    /**
+     * @return int
+     */
     public function getThinkInterval()
     {
         return $this->thinkInterval;
     }
 
+    /**
+     * @param LoopInterface $loop
+     * @throws \DI\DependencyException
+     * @throws \DI\NotFoundException
+     */
     protected function initChannelQueue(LoopInterface $loop)
     {
-        $this->channel = (new Client($loop, $this->connection))->connect()->then(function (Client $client) {
+        $connection = Container::getContainer()->get('connection.rabbitmq');
+        $this->channel = (new Client($loop, $connection))->connect()->then(function (Client $client) {
             return $client->channel();
         })->then(function (Channel $channel) {
             return $channel->exchangeDeclare('exchange', 'topic')->then(function () use ($channel) {
@@ -97,19 +112,70 @@ class SimulatorServer
         });
     }
 
+    /**
+     * @param $message
+     * @param $client
+     * @throws \DI\DependencyException
+     * @throws \DI\NotFoundException
+     */
     protected function handleRequest($message, $client)
     {
         $request = json_decode($message, true);
-        print_r($request);
+
         if (isset($request['type'])) {
             switch ($request['type']) {
                 case 'order':
-                    $order = new Order(rand(0, 1000), $request['value']);
-                    $this->simulator->getOrderService()->addOrder($order);
+                    $databaseOrder = Container::getContainer()->get('database.order');
+                    $id = $this->simulator->getOrderService()->make($databaseOrder, (int)$request['value']);
                     $this->publish(
                         json_encode([
                             'type' => 'order_created',
-                            'value' => $order->getId()
+                            'value' => $id
+                        ]),
+                        [
+                            'client_id' => $client
+                        ]
+                    );
+                    break;
+                case 'order-list':
+                    $databaseStatistics = Container::getContainer()->get('database.statistics');
+                    $statisticService = new StatisticsService();
+
+                    $output = $statisticService->getOrderList($databaseStatistics);
+                    $this->publish(
+                        json_encode([
+                            'type' => 'information',
+                            'value' => $output
+                        ]),
+                        [
+                            'client_id' => $client
+                        ]
+                    );
+                    break;
+                case 'statistics':
+                    $databaseStatistics = Container::getContainer()->get('database.statistics');
+                    $statisticService = new StatisticsService();
+
+                    $output = $statisticService->getOrderStatistics($databaseStatistics);
+                    $this->publish(
+                        json_encode([
+                            'type' => 'information',
+                            'value' => $output
+                        ]),
+                        [
+                            'client_id' => $client
+                        ]
+                    );
+                    break;
+                case 'iterations':
+                    $databaseStatistics = Container::getContainer()->get('database.statistics');
+                    $statisticService = new StatisticsService();
+
+                    $output = $statisticService->getElevatorIntervals($databaseStatistics);
+                    $this->publish(
+                        json_encode([
+                            'type' => 'information',
+                            'value' => $output
                         ]),
                         [
                             'client_id' => $client

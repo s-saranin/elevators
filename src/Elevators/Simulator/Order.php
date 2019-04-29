@@ -4,6 +4,8 @@
 namespace Elevators\Simulator;
 
 
+use Elevators\Container;
+
 /**
  * Class Order
  * @package Simulator
@@ -84,6 +86,15 @@ class Order
     public function setElevator(Elevator $elevator): void
     {
         $this->elevator = $elevator;
+    }
+
+    public function save(\Elevators\Database\Order $databaseOrder)
+    {
+        $databaseOrder->update($this->getId(), [
+            'floor' => $this->getFloor(),
+            'elevator_id' => $this->getElevator()->getId(),
+            'status' => $this->getStatus()
+        ]);
     }
 
     public function __toString()

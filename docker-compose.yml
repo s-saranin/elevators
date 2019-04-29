@@ -25,7 +25,7 @@ services:
       - ./docker/php/xdebug.ini:/usr/local/etc/php/conf.d/xdebug.ini
       - .:/var/www/html
   postgres:
-    image: postgres:10.1
+    build: ./docker/postgres
     restart: always
     container_name: postgres
     environment:

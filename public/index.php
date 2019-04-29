@@ -30,9 +30,9 @@
             <div class="frame query">
                 <span class="frame__label">Query</span>
                 <div>
-                    <button>Orders</button>
-                    <button>Statistics</button>
-                    <button>Iterations</button>
+                    <button id="query-order-list">Orders</button>
+                    <button id="query-statistics">Statistics</button>
+                    <button id="query-iterations">Iterations</button>
                 </div>
             </div>
         </div>
@@ -56,6 +56,7 @@
         'use strict';
 
         var messages = document.getElementById('simulation-output');
+        var information = document.getElementById('information-output');
 
         function start() {
             if (ws) {
@@ -72,8 +73,9 @@
                     case 'render':
                         messages.innerHTML = "Connection established!" + '<br>' + message.value + '<br>';
                         break;
-                    default:
-                        console.log(message.value);
+                    case 'information':
+                        information.innerHTML = message.value;
+                        break;
                 }
             };
             ws.onclose = function(){
@@ -102,8 +104,42 @@
                         'value': select.options[select.selectedIndex].value
                     }));
                 }
-            });
-        });
+            }
+        );
+
+        document.getElementById('query-order-list').addEventListener(
+            "click",
+            function() {
+                if (ws.readyState === ws.OPEN) {
+                    ws.send(JSON.stringify({
+                        'type': 'order-list'
+                    }));
+                }
+            }
+        );
+
+        document.getElementById('query-statistics').addEventListener(
+            "click",
+            function() {
+                if (ws.readyState === ws.OPEN) {
+                    ws.send(JSON.stringify({
+                        'type': 'statistics'
+                    }));
+                }
+            }
+        );
+
+        document.getElementById('query-iterations').addEventListener(
+            "click",
+            function() {
+                if (ws.readyState === ws.OPEN) {
+                    ws.send(JSON.stringify({
+                        'type': 'iterations'
+                    }));
+                }
+            }
+        );
+    });
 </script>
 </html>
 <?php
