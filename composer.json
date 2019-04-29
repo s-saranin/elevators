@@ -8,7 +8,12 @@
     "require": {
         "cboden/ratchet": "^0.4.1",
         "bunny/bunny": "@dev",
-        "ext-pgsql": "*"
+        "symfony/yaml": "^4.2",
+        "vlucas/phpdotenv": "^3.3",
+        "myclabs/php-enum": "^1.7",
+        "ext-spltype": "*",
+        "ext-pgsql": "*",
+        "ext-json": "*"
     },
     "autoload": {
         "psr-4": {

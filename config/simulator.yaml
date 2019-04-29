@@ -1,0 +1,6 @@
+think_interval: 1
+building:
+  floors: 10
+  elevators: 4
+  elevetor_move_interval: 2
+  elevator_open_interval: 4

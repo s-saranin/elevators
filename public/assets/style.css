@@ -1,0 +1,23 @@
+.wrapper {
+    width: 100%;
+}
+.frame-columns {
+    display: flex;
+    width: 100%;
+}
+.frame-columns > .frame{
+    flex: 50%;
+}
+.frame {
+    border: 1px black solid;
+    padding: 25px 10px 10px;
+    margin: 10px;
+    position: relative;
+}
+.frame > .frame__label {
+    border: 1px black solid;
+    padding: 2px 10px;
+    position: absolute;
+    background: white;
+    top: -10px;
+}
